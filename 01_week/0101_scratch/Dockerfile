@@ -11,9 +11,10 @@ FROM alpine:latest
 WORKDIR /go
 
 COPY --from=build /go/bin/app.bin .
-VOLUME /upload
-RUN adduser -D dev && mkdir ./uploads && chown -R dev:dev /go
 
+RUN adduser -D dev && mkdir /upload && ln -s /upload ./uploads && chown -R dev:dev /go && chown dev:dev /upload
+
+VOLUME /upload
 EXPOSE 9999
 USER dev
 ENTRYPOINT ["/go/app.bin"]
