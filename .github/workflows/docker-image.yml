@@ -7,16 +7,36 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Log in to GitHub Container Registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-    - name: Build the Docker image
-      run: DOCKER_BUILDKIT=0 docker build ./01_week/0101_scratch --file ./01_week/0101_scratch/Dockerfile --tag 0101_scratch:$(date +%s)
-    - name: Push docker image to repo
-      run: docker push ghcr.io/iexad/slio-edu:latest
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Tag Docker Image
+        run: |
+          # repo owner и имя репо в lowercase
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | cut -d'/' -f2)
+          BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]')
+
+          echo "Building ghcr.io/$OWNER/$REPO"
+
+          DOCKER_BUILDKIT=0 docker build \
+            -f ./01_week/0101_scratch/Dockerfile ./01_week/0101_scratch \
+            -t ghcr.io/$OWNER/$REPO:latest \
+            -t ghcr.io/$OWNER/$REPO:${{ github.sha }} \
+            -t ghcr.io/$OWNER/$REPO:$BRANCH
+
+      - name: Push Docker Images
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | cut -d'/' -f2)
+          BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]')
+
+          docker push ghcr.io/$OWNER/$REPO:latest
+          docker push ghcr.io/$OWNER/$REPO:${{ github.sha }}
+          docker push ghcr.io/$OWNER/$REPO:$BRANCH
